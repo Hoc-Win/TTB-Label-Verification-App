@@ -2,7 +2,6 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 from pydantic import BaseModel, Field
-import typing_extensions
 
 # ==========================================
 # 1. PAGE CONFIGURATION & UI SETUP

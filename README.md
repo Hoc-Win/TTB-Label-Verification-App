@@ -1,11 +1,9 @@
 # TTB Label Verification System (AI Prototype)
 
-https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/
-
 ## 📌 Project Overview
 This repository contains a proof-of-concept web application designed for the Alcohol and Tobacco Tax and Trade Bureau (TTB) Compliance Division. The application leverages a multimodal Large Language Model (LLM) to automate the optical verification of alcohol beverage labels against expected COLA application data, drastically reducing manual data entry verification while maintaining strict regulatory compliance.
 
-**Live Prototype:** [Insert your Streamlit Cloud URL here once deployed]
+**Live Prototype:** [Click here to access the live web app](https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/)
 
 ---
 

@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 from pydantic import BaseModel, Field
 import json
@@ -39,7 +40,7 @@ st.title("🔍 TTB Label Verification System")
 st.markdown("Upload label images and input the expected application data to verify compliance.")
 
 try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 except KeyError:
     st.error("⚠️ Gemini API Key not found. Please add it to your Streamlit secrets.")
     st.stop()
@@ -89,18 +90,10 @@ st.divider()
 if st.button("🚀 Verify Label Compliance", type="primary", use_container_width=True):
     
     if not expected_brand or not expected_class or not expected_abv:
-        st.error("🚨 *Please fill out all required text fields (marked with * ) before verifying.*")
+        st.error("🚨 *Please fill out all required text fields (marked with *) before verifying.*")
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
-        # Dynamically fetch available models to future-proof the application
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # Prioritize the newest 'flash' model for speed, fallback to the first available model
-        model_name = next((name for name in available_models if 'flash' in name.lower()), available_models[0])
-        
-        model = genai.GenerativeModel(model_name)
-        
         total_files = len(uploaded_files)
         progress_bar = st.progress(0, text="Initializing batch verification...")
         
@@ -127,9 +120,10 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                 """
                 
                 try:
-                    response = model.generate_content(
-                        [prompt, image],
-                        generation_config=genai.GenerationConfig(
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=[prompt, image],
+                        config=types.GenerateContentConfig(
                             response_mime_type="application/json",
                             response_schema=LabelVerification,
                             temperature=0.1

@@ -89,7 +89,7 @@ st.divider()
 if st.button("🚀 Verify Label Compliance", type="primary", use_container_width=True):
     
     if not expected_brand or not expected_class or not expected_abv:
-        st.error("🚨 *Please fill out all required text fields (marked with *) before verifying.*")
+        st.error("🚨 *Please fill out all required text fields (marked with * ) before verifying.*")
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:

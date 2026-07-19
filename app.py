@@ -9,12 +9,35 @@ import json
 # ==========================================
 st.set_page_config(page_title="TTB Label Verification System", layout="wide", page_icon="🔍")
 
+# ==========================================
+# 1.5 SIDEBAR INSTRUCTIONS & TIPS
+# ==========================================
+with st.sidebar:
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Seal_of_the_United_States_Department_of_the_Treasury.svg/2048px-Seal_of_the_United_States_Department_of_the_Treasury.svg.png", width=100)
+    st.title("ℹ️ How to Use")
+    st.markdown("""
+    **1. Enter Expected Data**
+    Type the exact Brand Name, Class/Type, and ABV from the COLA application.
+    
+    **2. Upload Labels**
+    Drag and drop one or multiple label images (JPG/PNG) into the upload box.
+    
+    **3. Verify**
+    Click the Verify button. The AI will cross-reference your text against the image and check for the mandatory Government Warning.
+    
+    ---
+    **💡 Pro Tips:**
+    * **Batching:** You can upload up to 200 images at once.
+    * **Lighting:** The AI compensates for glare, but if a label is flagged for review, try uploading a flatter image.
+    """)
+    st.caption("TTB AI Prototype v1.0 | Built for Compliance Division")
+
+# ==========================================
+# 2. MAIN HEADER & API SETUP
+# ==========================================
 st.title("🔍 TTB Label Verification System")
 st.markdown("Upload label images and input the expected application data to verify compliance.")
 
-# ==========================================
-# 2. API KEY AUTHENTICATION & SETUP
-# ==========================================
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 except KeyError:
@@ -50,14 +73,12 @@ with col1:
     st.subheader("📝 1. Expected Application Data")
     st.info("Input the data exactly as it appears on the COLA application.")
     
-    # UI Refinement #1 & #3: Added asterisks for required fields and removed hardcoded dummy data
     expected_brand = st.text_input("Brand Name *", placeholder="Enter brand name...")
     expected_class = st.text_input("Class/Type *", placeholder="Enter class/type...")
     expected_abv = st.text_input("Alcohol Content (ABV) *", placeholder="Enter ABV...")
     
 with col2:
     st.subheader("📸 2. Label Image Upload")
-    # UI Refinement #2: The batch uploader is built natively into this single component
     uploaded_files = st.file_uploader("Upload Label Images (Drag & drop multiple files for batch processing)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 st.divider()
@@ -67,21 +88,17 @@ st.divider()
 # ==========================================
 if st.button("🚀 Verify Label Compliance", type="primary", use_container_width=True):
     
-    # UI Refinement #3: Strict validation guardrails before API execution
     if not expected_brand or not expected_class or not expected_abv:
         st.error("🚨 *Please fill out all required text fields (marked with *) before verifying.*")
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
-        # Initialize the model
         model = genai.GenerativeModel('gemini-1.5-flash')
         
-        # UI Refinement #2: Batch processing progress bar setup
         total_files = len(uploaded_files)
         progress_bar = st.progress(0, text="Initializing batch verification...")
         
         for index, uploaded_file in enumerate(uploaded_files):
-            # Update progress bar for each file
             current_file_num = index + 1
             progress_bar.progress(current_file_num / total_files, text=f"Processing label {current_file_num} of {total_files}: {uploaded_file.name}")
             
@@ -150,5 +167,4 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                 except Exception as e:
                     st.error(f"An error occurred while processing {uploaded_file.name}: {e}")
                     
-        # Clear the progress bar when the batch is fully complete
         progress_bar.empty()

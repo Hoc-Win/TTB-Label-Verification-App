@@ -93,7 +93,7 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         
         total_files = len(uploaded_files)
         progress_bar = st.progress(0, text="Initializing batch verification...")

@@ -4,6 +4,7 @@ from google.genai import types
 from PIL import Image
 from pydantic import BaseModel, Field
 import json
+import time
 
 # ==========================================
 # 1. PAGE CONFIGURATION & UI SETUP
@@ -89,8 +90,9 @@ st.divider()
 # ==========================================
 if st.button("🚀 Verify Label Compliance", type="primary", use_container_width=True):
     
-    if not expected_brand or not expected_class or not expected_abv:
-        st.error("🚨 *Please fill out all required text fields (marked with *) before verifying.*")
+    # Strip empty spaces to prevent blank inputs from bypassing the check
+    if not expected_brand.strip() or not expected_class.strip() or not expected_abv.strip():
+        st.error("🚨 *Please fill out all required text fields (marked with *) with valid text before verifying.*")
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
@@ -99,10 +101,14 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
         # ==========================================
         available_models = []
         for m in client.models.list():
-            # The new SDK uses either 'supported_actions' or 'supported_generation_methods'
             methods = getattr(m, 'supported_actions', getattr(m, 'supported_generation_methods', []))
             if methods and 'generateContent' in methods:
                 available_models.append(m.name)
+        
+        # Safety catch in case the API key loses access to generative models
+        if not available_models:
+            st.error("⚠️ No compatible generative models available. Please check your API key or Google Cloud billing status.")
+            st.stop()
         
         # Fallback cascade: Try the lightweight 8b model first, then standard 1.5, then anything available
         model_name = next((name for name in available_models if '1.5-flash-8b' in name), 
@@ -116,6 +122,10 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
             progress_bar.progress(current_file_num / total_files, text=f"Processing label {current_file_num} of {total_files}: {uploaded_file.name}")
             
             image = Image.open(uploaded_file)
+            
+            # Image optimization: Resize large images to prevent API latency and payload limits
+            if image.size[0] > 4096 or image.size[1] > 4096:
+                image.thumbnail((4096, 4096), Image.Resampling.LANCZOS)
             
             with st.spinner(f"Analyzing {uploaded_file.name}... (Target: < 5 seconds)"):
                 
@@ -134,18 +144,31 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                 """
                 
                 try:
-                    # Setting temperature=0.1 ensures strict data extraction and minimizes AI hallucinations
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=[prompt, image],
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            response_schema=LabelVerification,
-                            temperature=0.1
-                        )
-                    )
+                    result = None
+                    max_retries = 3
                     
-                    result = json.loads(response.text)
+                    # Exponential Backoff Retry Loop to handle API rate limits
+                    for attempt in range(max_retries):
+                        try:
+                            # Setting temperature=0.1 ensures strict data extraction and minimizes AI hallucinations
+                            response = client.models.generate_content(
+                                model=model_name,
+                                contents=[prompt, image],
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    response_schema=LabelVerification,
+                                    temperature=0.1
+                                )
+                            )
+                            result = json.loads(response.text)
+                            break # Break the loop if the call is successful
+                        
+                        except Exception as inner_e:
+                            # If we hit a rate limit (429) and haven't run out of retries, wait and try again
+                            if "429" in str(inner_e) and attempt < max_retries - 1:
+                                time.sleep(2 ** attempt) # Waits 1s, then 2s
+                            else:
+                                raise inner_e # Re-raise error if it's not a rate limit or we are out of tries
                     
                     # ==========================================
                     # 6. RESULTS DISPLAY

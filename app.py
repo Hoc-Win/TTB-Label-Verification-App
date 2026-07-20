@@ -15,7 +15,7 @@ st.set_page_config(page_title="TTB Label Verification System", layout="wide", pa
 # 1.5 SIDEBAR INSTRUCTIONS & TIPS
 # ==========================================
 with st.sidebar:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Seal_of_the_United_States_Department_of_the_Treasury.svg/2048px-Seal_of_the_United_States_Department_of_the_Treasury.svg.png", width=200)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Seal_of_the_United_States_Department_of_the_Treasury.svg/2048px-Seal_of_the_United_States_Department_of_the_Treasury.svg.png", width=150)
     st.title("ℹ️ How to Use")
     st.markdown("""
     **1. Enter Expected Data**
@@ -97,27 +97,15 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
         # ==========================================
-        # DYNAMIC MODEL SELECTION
+        # MODEL SELECTION (Fixed to gemini-1.5-flash)
         # ==========================================
-        available_models = []
-        for m in client.models.list():
-            methods = getattr(m, 'supported_actions', getattr(m, 'supported_generation_methods', []))
-            if methods and 'generateContent' in methods:
-                available_models.append(m.name)
-        
-        # Safety catch in case the API key loses access to generative models
-        if not available_models:
-            st.error("⚠️ No compatible generative models available. Please check your API key or Google Cloud billing status.")
-            st.stop()
-        
-        # Fallback cascade: Prefer newer models, exclude deprecated ones
-        # Priority: 2.0-flash > 1.5-flash-8b > 1.5-flash > any available
-        model_name = next((name for name in available_models if 'gemini-2.0-flash' in name), 
-                     next((name for name in available_models if '1.5-flash-8b' in name), 
-                     next((name for name in available_models if '1.5-flash' in name), available_models[0])))
+        # Using gemini-1.5-flash for better free-tier quota availability
+        # gemini-2.0-flash has stricter quota limits on free tier and can cause RESOURCE_EXHAUSTED errors
+        model_name = "gemini-1.5-flash"
         
         total_files = len(uploaded_files)
         progress_bar = st.progress(0, text="Initializing batch verification...")
+        quota_exceeded_shown = False  # Track if we've already shown the quota warning
         
         for index, uploaded_file in enumerate(uploaded_files):
             current_file_num = index + 1
@@ -141,21 +129,20 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                 
                 Rules for Evaluation:
                 1. Fuzzy Matching (Dave's Rule): For Brand, Class, and ABV, forgive minor punctuation or capitalization differences (e.g., "STONE'S THROW" matches "Stone's Throw").
-                2. Strict Matching (Jenny's Rule): Locate the health warning. It MUST begin with "GOVERNMENT WARNING:" in exactly ALL CAPS. If it says "Government Warning" or uses different casing, it fails.
+                2. Strict Matching (Jenny's Rule): Locate the health warning. It MUST begin with "GOVERNMENT WARNING:" in exactly ALL CAPS. If it says "Government Warning" or uses different casing, mark as non-compliant.
                 3. Quality Control: Compensate for bad angles or glare. If the text is completely unreadable, flag for human review.
                 """
                 
                 try:
                     result = None
                     max_retries = 3
-                    current_model = model_name
                     
-                    # Exponential Backoff Retry Loop to handle API rate limits and model failures
+                    # Retry loop with exponential backoff for rate limits
                     for attempt in range(max_retries):
                         try:
                             # Setting temperature=0.1 ensures strict data extraction and minimizes AI hallucinations
                             response = client.models.generate_content(
-                                model=current_model,
+                                model=model_name,
                                 contents=[prompt, image],
                                 config=types.GenerateContentConfig(
                                     response_mime_type="application/json",
@@ -164,32 +151,32 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                                 )
                             )
                             result = json.loads(response.text)
-                            break # Break the loop if the call is successful
+                            break  # Break the loop if the call is successful
                         
                         except Exception as inner_e:
                             error_str = str(inner_e)
-                            # If model is deprecated/unavailable, try the next best available model
-                            if "no longer available" in error_str or "NOT_FOUND" in error_str:
-                                try:
-                                    # Refresh available models and try a different one
-                                    fresh_models = []
-                                    for m in client.models.list():
-                                        methods = getattr(m, 'supported_actions', getattr(m, 'supported_generation_methods', []))
-                                        if methods and 'generateContent' in methods:
-                                            fresh_models.append(m.name)
-                                    
-                                    if fresh_models:
-                                        # Use the first available model
-                                        current_model = fresh_models[0]
-                                        continue  # Retry with the new model
-                                except:
-                                    pass
                             
-                            # If we hit a rate limit (429) and haven't run out of retries, wait and try again
+                            # Handle RESOURCE_EXHAUSTED (quota exceeded) - don't retry, inform user
+                            if "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
+                                if not quota_exceeded_shown:
+                                    st.error(
+                                        "🚨 **API Quota Exceeded**: Your free tier quota has been exhausted. "
+                                        "Please check your [Google Cloud billing](https://console.cloud.google.com/billing) "
+                                        "or upgrade your plan. "
+                                        "Free tier users have daily limits on API requests."
+                                    )
+                                    quota_exceeded_shown = True
+                                raise inner_e
+                            
+                            # Handle rate limiting (429) - retry with backoff
                             if "429" in error_str and attempt < max_retries - 1:
-                                time.sleep(2 ** attempt) # Waits 1s, then 2s
-                            else:
-                                raise inner_e # Re-raise error if it's not a rate limit or we are out of tries
+                                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                                st.warning(f"⏳ Rate limited. Retrying in {wait_time}s... (Attempt {attempt + 1}/{max_retries})")
+                                time.sleep(wait_time)
+                                continue
+                            
+                            # For all other errors, re-raise
+                            raise inner_e
                     
                     # ==========================================
                     # 6. RESULTS DISPLAY
@@ -224,6 +211,6 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                     st.divider()
 
                 except Exception as e:
-                    st.error(f"An error occurred while processing {uploaded_file.name}: {e}")
+                    st.error(f"❌ An error occurred while processing {uploaded_file.name}: {e}")
                     
         progress_bar.empty()

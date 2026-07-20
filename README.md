@@ -50,3 +50,14 @@ If you wish to run this application locally on your machine rather than using th
 ```bash
 git clone [https://github.com/your-username/ttb-label-verification-app.git](https://github.com/your-username/ttb-label-verification-app.git)
 cd ttb-label-verification-app
+
+---
+
+## 🚀 Next Steps for Production Deployment
+
+While this application was built as a standalone Minimum Viable Product (MVP) to solve the immediate bottleneck in the labeling division, scaling it for enterprise-wide deployment will involve the following architectural enhancements:
+
+*   **Codebase Modularity:** Refactoring the single-file Streamlit structure into discrete modules (e.g., `ui_components.py`, `ai_processing.py`, and `data_schemas.py`). This will allow multiple engineers to work on the app simultaneously without merge conflicts.
+*   **TTB System Integration:** Transitioning the "Expected Application Data" manual input fields into automated API calls that pull directly from the legacy .NET COLA database via secure webhooks.
+*   **Audit Logging:** Implementing a secure, internal TTB database to store the AI's JSON outputs and decision logs for historical compliance tracking, without ever storing the proprietary label images.
+*   **Role-Based Access Control (RBAC):** Adding federal Single Sign-On (SSO) to track which agents are verifying which batches of labels.

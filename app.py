@@ -94,6 +94,20 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
     elif not uploaded_files:
         st.warning("⚠️ *Please upload at least one label image to begin verification.*")
     else:
+        # ==========================================
+        # DYNAMIC MODEL SELECTION
+        # ==========================================
+        available_models = []
+        for m in client.models.list():
+            # The new SDK uses either 'supported_actions' or 'supported_generation_methods'
+            methods = getattr(m, 'supported_actions', getattr(m, 'supported_generation_methods', []))
+            if methods and 'generateContent' in methods:
+                available_models.append(m.name)
+        
+        # Fallback cascade: Try the lightweight 8b model first, then standard 1.5, then anything available
+        model_name = next((name for name in available_models if '1.5-flash-8b' in name), 
+                     next((name for name in available_models if '1.5-flash' in name), available_models[0]))
+        
         total_files = len(uploaded_files)
         progress_bar = st.progress(0, text="Initializing batch verification...")
         
@@ -120,8 +134,9 @@ if st.button("🚀 Verify Label Compliance", type="primary", use_container_width
                 """
                 
                 try:
+                    # Setting temperature=0.1 ensures strict data extraction and minimizes AI hallucinations
                     response = client.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model=model_name,
                         contents=[prompt, image],
                         config=types.GenerateContentConfig(
                             response_mime_type="application/json",

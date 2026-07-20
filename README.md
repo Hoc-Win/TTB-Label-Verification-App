@@ -30,7 +30,7 @@ AI Engine: Google Gemini 1.5 Flash via google-genai
 Justification: Optimized for high-speed, multimodal tasks. It handles curved labels, glare, and poor lighting natively without requiring pre-processing image filters.
 🔒 Security & Assumptions
 For security purpose, this application utilizes everything from the internet. It does not retain any data.
-It requires outbout access to the provided URL (https://ttb-cola-hxdrdg52qh9kr3ahdyvt4m.streamlit.app/)
+It requires outbout access to the provided URL (https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/)
 💠 Future Enhancements
 This app serves as a quick proof of concept. It can be enhanced to include additional features, such as:
 

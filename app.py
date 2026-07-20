@@ -1,7 +1,7 @@
 '''
 @author: Hoc Nguyen
 
-@desc: ttb-cola.py is a web app developed to process images of labels using Google Gemini engine.
+@desc: TTB-Label-Verification-App is a web app developed to process images of labels using Google Gemini engine.
        The app extracts text from the label image and verifies it against TTB-COLA beverage label requirements.
        This app will be deployed on Streamlit Cloud and will be accessible via a web browser.
 

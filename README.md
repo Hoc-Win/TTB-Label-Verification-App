@@ -2,10 +2,9 @@ TTB Label Verification System (AI Prototype)
 📌 Project Overview
 This repository contains a proof-of-concept web application designed for the Alcohol and Tobacco Tax and Trade Bureau (TTB) Compliance Division. The application leverages a multimodal Large Language Model (LLM) to automate the optical verification of alcohol beverage labels against expected COLA application data, drastically reducing manual data entry verification while maintaining strict regulatory compliance.
 
-Live Prototype: [https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/]
+**Live Prototype:** [Click here to access the live web app](https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/)
 
-![App Screenshot](Paste your screenshot here in GitHub to automatically generate the image link)
-
+---
 🏗️ System Architecture & Approach
 Traditional Optical Character Recognition (OCR) systems process documents sequentially (Scan -> Extract -> Regex Match), which often results in processing times exceeding 30 seconds. To meet the TTB's strict <5-second latency requirement, this application bypasses traditional OCR.
 

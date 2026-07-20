@@ -6,73 +6,43 @@ This repository contains a proof-of-concept web application designed for the Alc
 
 ---
 🏗️ System Architecture & Approach
-Traditional Optical Character Recognition (OCR) systems process documents sequentially (Scan -> Extract -> Regex Match), which often results in processing times exceeding 30 seconds. To meet the TTB's strict <5-second latency requirement, this application bypasses traditional OCR.
+This application utilizes a native multimodal LLM (Google Gemini 3.5 Flash) to ingest the raw image pixels and evaluate compliance in a single, parallel pass. The application enforces a designated pass or fail string for easy extraction in order to visually show whether the label passed or failed. Any fauilures will include an explanation to justify the result.
 
-Instead, it utilizes a native multimodal LLM to ingest the raw image pixels and evaluate compliance in a single, parallel pass. The application enforces a Structured Output Schema (Pydantic) to guarantee the AI returns a predictable, crash-proof JSON object, allowing for deterministic UI rendering.
+The app is designed to be simple to use. Just upload an image of a label, then click the "Process Label" button to get the PASSED or FAILED result.
 
-Stakeholder Requirements Addressed:
-The "Mother" UI Test (Sarah & Dave): A strict, single-page, dual-column dashboard. Inputs on the left, images on the right, and one primary button. No nested menus.
+The app's user interface (UI) is developed with the Streamlit layout. It consists of a simple, easy-to-use layout:
 
-Batch Processing (Janet): The file uploader accepts multiple label images simultaneously, processing them in a loop to clear heavy queues during peak seasons.
-
-Fuzzy vs. Strict Matching (Dave & Jenny): The AI prompt isolates evaluation logic. Brand names and ABV allow for typographical leniency (e.g., "STONE'S THROW" vs "Stone's Throw"), while the Government Warning enforces a zero-tolerance, exact-character match including ALL CAPS casing.
-
-Explainable AI (Auditability): The results output a side-by-side table comparing the expected COLA data against exactly what the AI extracted from the label, building trust with the agents.
-
+Two panels: Left, Right
+The left panel consists of an Upload button to upload an image of a label and a "Process Label" button to process.
+The left panel also contains the uploaded image, which will be resized with the proper aspect ratio and displayed below the Upload button.
+The right panel is dedicated to error messages and the results of the AI analysis. It should provide the following visualizations:
+Error message indicating an image needs to be uploaded before processing
+Busy graphics indicating processing in progress
+Red or green message indicating FAILURE or PASSING of the analysis
+Extracted text from the image
+The AI analysis
 🛠️ Tools Used & Trade-Offs
 Frontend: Streamlit
 
 Justification: Enables rapid prototyping of data-focused web applications in pure Python.
+AI Engine: Google Gemini 1.5 Flash via google-genai
 
-Trade-off: Less customizable than a React/Node.js frontend, but perfect for a standalone proof-of-concept prioritizing speed of delivery.
-
-AI Engine: Google Gemini via google-genai SDK
-
-Justification: Optimized for high-speed, multimodal tasks. It handles curved labels, glare, and poor lighting natively without requiring pre-processing image filters. The application uses a dynamic fallback router to ensure it always queries an active, authorized model (e.g., gemini-1.5-flash), preventing API deprecation crashes.
-
-Trade-off: Flash models are slightly less capable at highly complex logical reasoning than larger enterprise models, but were chosen explicitly to comfortably beat the 5-second processing requirement.
-
-Data Structuring: Pydantic
-
-Justification: Prevents application crashes by forcing the LLM to return data matching a strict backend schema, eliminating AI hallucinations.
-
+Justification: Optimized for high-speed, multimodal tasks. It handles curved labels, glare, and poor lighting natively without requiring pre-processing image filters.
 🔒 Security & Assumptions
-Ephemeral State Management: To comply with federal IT security guidelines regarding PII and document retention (noted by IT Admin Marcus), this application does not connect to a database. Images and text data are processed in system memory and immediately discarded when the session ends.
+For security purpose, this application utilizes everything from the internet. It does not retain any data.
+It requires outbout access to the provided URL (https://ttb-cola-hxdrdg52qh9kr3ahdyvt4m.streamlit.app/)
+💠 Future Enhancements
+This app serves as a quick proof of concept. It can be enhanced to include additional features, such as:
 
-Cloud Deployment: The prototype is hosted externally to bypass internal TTB network firewalls that previously blocked outbound ML endpoint traffic.
-
-Assumption: We assume agents have access to digital image files (JPG/PNG) of the labels submitted in the COLA application.
-
+Support for multiple image uploads and batch processing.
+A data table listing all images (and their labels) with processing status. Clicking on an entry will open the image to display the extracted text and verification result.
+Ability to save the AI analysis.
+Ability to generate and save report for batch processing.
+Enhanced post-processing to ensure "PASSED" and "FAILED" labels are justified correctly.
 💻 Local Setup & Run Instructions
 If you wish to run this application locally on your machine rather than using the deployed web version, follow these steps:
 
-1. Clone the repository:
-git clone (https://github.com/your-username/ttb-label-verification-app.git)
-cd ttb-label-verification-app
-
-2. Install dependencies:
-
-pip install -r requirements.txt
-
-3. Configure API Credentials:
-Create a .streamlit/secrets.toml file in the root directory and add your Google Gemini API key:
-
-GEMINI_API_KEY = "your_api_key_here"
-
-4. Launch the application:
-
-streamlit run app.py
-
----
-
-🚀 Next Steps for Production Deployment
-
-While this application was built as a standalone Minimum Viable Product (MVP) to solve the immediate bottleneck in the labeling division, scaling it for enterprise-wide deployment will involve the following architectural enhancements:
-
-Codebase Modularity: Refactoring the single-file Streamlit structure into discrete modules (e.g., ui_components.py, ai_processing.py, and data_schemas.py). This will allow multiple engineers to work on the app simultaneously without merge conflicts.
-
-TTB System Integration: Transitioning the "Expected Application Data" manual input fields into automated API calls that pull directly from the legacy .NET COLA database via secure webhooks.
-
-Audit Logging: Implementing a secure, internal TTB database to store the AI's JSON outputs and decision logs for historical compliance tracking, without ever storing the proprietary label images.
-
-Role-Based Access Control (RBAC): Adding federal Single Sign-On (SSO) to track which agents are verifying which batches of labels.
+Clone the repository
+Install python
+Install packages listed in the requirements.txt
+From terminal, issue command:streamlit run app.py

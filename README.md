@@ -2,7 +2,7 @@ TTB Label Verification System (AI Prototype)
 📌 Project Overview
 This repository contains a proof-of-concept web application designed for the Alcohol and Tobacco Tax and Trade Bureau (TTB) Compliance Division. The application leverages a multimodal Large Language Model (LLM) to automate the optical verification of alcohol beverage labels against expected COLA application data, drastically reducing manual data entry verification while maintaining strict regulatory compliance.
 
-Live Prototype: https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/
+Live Prototype: [https://ttb-label-verification-app-avabknkbcz7n7yps6fre8t.streamlit.app/]
 
 ![App Screenshot](Paste your screenshot here in GitHub to automatically generate the image link)
 
@@ -67,6 +67,7 @@ streamlit run app.py
 ---
 
 🚀 Next Steps for Production Deployment
+
 While this application was built as a standalone Minimum Viable Product (MVP) to solve the immediate bottleneck in the labeling division, scaling it for enterprise-wide deployment will involve the following architectural enhancements:
 
 Codebase Modularity: Refactoring the single-file Streamlit structure into discrete modules (e.g., ui_components.py, ai_processing.py, and data_schemas.py). This will allow multiple engineers to work on the app simultaneously without merge conflicts.
